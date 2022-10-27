@@ -1,0 +1,23 @@
+plugins {
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(19)
+    }
+
+    modularity.inferModulePath = true
+}
+
+compileJava {
+    options.compilerArgs += ['--enable-preview']
+}

@@ -1,0 +1,51 @@
+package net.gudenau.jusb.internal;
+
+import net.gudenau.jusb.UsbDevice;
+import net.gudenau.jusb.UsbDeviceHandle;
+import net.gudenau.jusb.UsbException;
+import net.gudenau.jusb.descriptor.UsbDeviceDescriptor;
+import net.gudenau.jusb.internal.libusb.LibUsb;
+import net.gudenau.jusb.internal.libusb.LibUsbDevice;
+import net.gudenau.jusb.internal.libusb.LibUsbDeviceDescriptor;
+import net.gudenau.jusb.internal.libusb.LibUsbDeviceHandle;
+
+import java.lang.foreign.MemorySession;
+import java.lang.foreign.ValueLayout;
+
+public final class UsbDeviceImpl implements UsbDevice {
+    private final LibUsbDevice device;
+    private final MemorySession session;
+    private final LibUsbDeviceDescriptor descriptor;
+    
+    public UsbDeviceImpl(LibUsbDevice device) {
+        this.device = device;
+        session = MemorySession.openShared();
+        descriptor = new LibUsbDeviceDescriptor(session);
+        // Doesn't fail anymore
+        LibUsb.libusb_get_device_descriptor(device, descriptor);
+    }
+    
+    @Override
+    public UsbDeviceDescriptor descriptor() {
+        return descriptor;
+    }
+    
+    @Override
+    public UsbDeviceHandle open() throws UsbException {
+        try(var session = MemorySession.openConfined()) {
+            var pointer = session.allocate(ValueLayout.ADDRESS);
+            var result = LibUsb.libusb_open(device, pointer);
+            if(result != LibUsb.LIBUSB_SUCCESS) {
+                throw new UsbException("Failed to open device: " + LibUsb.libusb_error_name(result));
+            }
+            
+            return new UsbDeviceHandleImpl(new LibUsbDeviceHandle(pointer.get(ValueLayout.ADDRESS, 0)));
+        }
+    }
+    
+    @Override
+    public void close() {
+        LibUsb.libusb_unref_device(device);
+        session.close();
+    }
+}
