@@ -34,7 +34,7 @@ public final class JUsbImpl implements JUsb {
         return switch(option) {
             case ENABLE_ASYNC -> true;
             case ENABLE_HOTPLUG -> LibUsb.libusb_has_capability(LibUsb.LIBUSB_CAP_HAS_HOTPLUG);
-            case ENABLE_DETATCH -> LibUsb.libusb_has_capability(LibUsb.LIBUSB_CAP_SUPPORTS_DETACH_KERNEL_DRIVER);
+            case ENABLE_DETACH -> LibUsb.libusb_has_capability(LibUsb.LIBUSB_CAP_SUPPORTS_DETACH_KERNEL_DRIVER);
         };
     }
     
@@ -54,7 +54,7 @@ public final class JUsbImpl implements JUsb {
     
         enableAsync = options.contains(Option.ENABLE_ASYNC);
         enableHotplug = options.contains(Option.ENABLE_HOTPLUG);
-        enableDetach = options.contains(Option.ENABLE_DETATCH);
+        enableDetach = options.contains(Option.ENABLE_DETACH);
         
         if(enableHotplug && !hotplugCallbacks.isEmpty()) {
             this.hotplugCallbacks = hotplugCallbacks;
