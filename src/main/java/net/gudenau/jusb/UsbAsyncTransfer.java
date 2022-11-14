@@ -1,6 +1,6 @@
 package net.gudenau.jusb;
 
-import java.lang.foreign.MemorySegment;
+import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -42,7 +42,7 @@ public interface UsbAsyncTransfer extends AutoCloseable {
      * @param buffer The data buffer of the transfer
      * @param timeout The timeout of the transfer
      */
-    default void bulkTransfer(int endpoint, UsbDirection direction, MemorySegment buffer, long timeout) {
+    default void bulkTransfer(int endpoint, UsbDirection direction, ByteBuffer buffer, long timeout) {
         buffer(buffer);
         bulkTransfer(endpoint, direction, timeout);
     }
@@ -55,7 +55,7 @@ public interface UsbAsyncTransfer extends AutoCloseable {
      * @param buffer The data buffer of the transfer
      * @param timeout The timeout of the transfer
      */
-    default void interruptTransfer(int endpoint, UsbDirection direction, MemorySegment buffer, long timeout) {
+    default void interruptTransfer(int endpoint, UsbDirection direction, ByteBuffer buffer, long timeout) {
         buffer(buffer);
         interruptTransfer(endpoint, direction, timeout);
     }
@@ -66,7 +66,7 @@ public interface UsbAsyncTransfer extends AutoCloseable {
      * @param buffer The data buffer of the transfer
      * @param timeout The timeout of the transfer
      */
-    default void controlTransfer(MemorySegment buffer, long timeout) {
+    default void controlTransfer(ByteBuffer buffer, long timeout) {
         buffer(buffer);
         controlTransfer(timeout);
     }
@@ -76,7 +76,7 @@ public interface UsbAsyncTransfer extends AutoCloseable {
      *
      * @param buffer The buffer to use
      */
-    void buffer(MemorySegment buffer);
+    void buffer(ByteBuffer buffer);
     
     /**
      * Submits this transfer to the USB subsystem.
@@ -96,5 +96,5 @@ public interface UsbAsyncTransfer extends AutoCloseable {
      * @param buffer The buffer of a transfer, if present
      * @param stall True if the transfer stalled
      */
-    record Result(MemorySegment buffer, boolean stall) {}
+    record Result(ByteBuffer buffer, boolean stall) {}
 }

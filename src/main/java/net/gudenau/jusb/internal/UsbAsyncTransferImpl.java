@@ -9,6 +9,7 @@ import net.gudenau.jusb.internal.libusb.LibUsbTransferCallback;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.MemorySession;
+import java.nio.ByteBuffer;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
@@ -19,7 +20,7 @@ import static net.gudenau.jusb.internal.Utils.endpoint;
 public final class UsbAsyncTransferImpl implements UsbAsyncTransfer {
     private final LibUsbTransfer transfer;
     private final MemorySession session;
-    private volatile MemorySegment buffer;
+    private volatile MemorySegment segment;
     private volatile CompletableFuture<Result> future;
     private volatile boolean closed;
     
@@ -33,8 +34,8 @@ public final class UsbAsyncTransferImpl implements UsbAsyncTransfer {
                 
                 switch(status) {
                     case LibUsb.LIBUSB_TRANSFER_COMPLETED -> {
-                        var segment = buffer.asSlice(0, transfer.actual_length());
-                        future.complete(new Result(segment, false));
+                        var segment = this.segment.asSlice(0, transfer.actual_length());
+                        future.complete(new Result(segment.asByteBuffer(), false));
                     }
                     
                     case LibUsb.LIBUSB_TRANSFER_TIMED_OUT -> future.completeExceptionally(new TimeoutException("Usb transfer timed out"));
@@ -88,13 +89,14 @@ public final class UsbAsyncTransferImpl implements UsbAsyncTransfer {
     }
     
     @Override
-    public void buffer(MemorySegment buffer) {
+    public void buffer(ByteBuffer buffer) {
         Objects.requireNonNull(buffer, "buffer can't be null");
         synchronized(this) {
             validateMutableState();
-            this.buffer = buffer;
-            transfer.buffer(buffer)
-                .length(clampToUnsignedInt(buffer.byteSize()));
+            var segment = MemorySegment.ofBuffer(buffer);
+            this.segment = segment;
+            transfer.buffer(segment)
+                .length(clampToUnsignedInt(segment.byteSize()));
         }
     }
     
