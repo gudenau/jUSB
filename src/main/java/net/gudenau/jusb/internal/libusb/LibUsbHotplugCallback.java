@@ -10,10 +10,10 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 @FunctionalInterface
 public interface LibUsbHotplugCallback {
-    int invoke(LibUsbContext ctx, LibUsbDevice device, int event, MemoryAddress user_data);
+    boolean invoke(LibUsbContext ctx, LibUsbDevice device, int event, MemoryAddress user_data);
     
     default int invoke(MemoryAddress ctx, MemoryAddress device, int event, MemoryAddress user_data) {
-        return invoke(new LibUsbContext().set(ctx), new LibUsbDevice(device), event, user_data);
+        return invoke(new LibUsbContext().set(ctx), new LibUsbDevice(device), event, user_data) ? 1 : 0;
     }
     
     static MemorySegment allocate(LibUsbHotplugCallback callback, MemorySession session) {
@@ -36,13 +36,13 @@ public interface LibUsbHotplugCallback {
         }
     
         @Override
-        public int invoke(LibUsbContext ctx, LibUsbDevice device, int event, MemoryAddress user_data) {
+        public boolean invoke(LibUsbContext ctx, LibUsbDevice device, int event, MemoryAddress user_data) {
             return invoke(
                 ctx == null ? MemoryAddress.NULL : ctx.address(),
                 device == null ? MemoryAddress.NULL : device.address(),
                 event,
                 user_data
-            );
+            ) != 0;
         }
     
         @Override

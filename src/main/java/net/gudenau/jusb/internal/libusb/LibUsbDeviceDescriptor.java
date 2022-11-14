@@ -1,5 +1,7 @@
 package net.gudenau.jusb.internal.libusb;
 
+import net.gudenau.jusb.descriptor.UsbDeviceDescriptor;
+
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
@@ -7,7 +9,7 @@ import java.lang.invoke.VarHandle;
 
 import static net.gudenau.jusb.internal.ForeignUtils.*;
 
-public record LibUsbDeviceDescriptor(MemorySegment segment) implements net.gudenau.jusb.descriptor.UsbDeviceDescriptor {
+public record LibUsbDeviceDescriptor(MemorySegment segment) implements UsbDeviceDescriptor {
     static final GroupLayout LAYOUT = structure(
         S8.withName("bLength"),
         S8.withName("bDescriptorType"),

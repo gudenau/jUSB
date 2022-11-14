@@ -13,11 +13,13 @@ import java.lang.foreign.MemorySession;
 import java.lang.foreign.ValueLayout;
 
 public final class UsbDeviceImpl implements UsbDevice {
+    private final JUsbImpl usb;
     private final LibUsbDevice device;
     private final MemorySession session;
     private final LibUsbDeviceDescriptor descriptor;
     
-    public UsbDeviceImpl(LibUsbDevice device) {
+    public UsbDeviceImpl(JUsbImpl usb, LibUsbDevice device) {
+        this.usb = usb;
         this.device = device;
         session = MemorySession.openShared();
         descriptor = new LibUsbDeviceDescriptor(session);
@@ -39,7 +41,7 @@ public final class UsbDeviceImpl implements UsbDevice {
                 throw new UsbException("Failed to open device: " + LibUsb.libusb_error_name(result));
             }
             
-            return new UsbDeviceHandleImpl(new LibUsbDeviceHandle(pointer.get(ValueLayout.ADDRESS, 0)));
+            return new UsbDeviceHandleImpl(usb, new LibUsbDeviceHandle(pointer.get(ValueLayout.ADDRESS, 0)));
         }
     }
     

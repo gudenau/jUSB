@@ -38,5 +38,7 @@ public sealed interface UsbDeviceHandle extends AutoCloseable permits UsbDeviceH
         }
     }
     
+    UsbAsyncTransfer createTransfer() throws UsbException;
+    
     @Override void close() throws UsbException;
 }

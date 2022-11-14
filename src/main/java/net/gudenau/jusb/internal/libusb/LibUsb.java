@@ -46,6 +46,27 @@ public final class LibUsb {
     public static final int LIBUSB_ENDPOINT_OUT = 0x00;
     public static final int LIBUSB_ENDPOINT_IN = 0x80;
     
+    public static final int LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED = 1 << 0;
+    public static final int LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT = 1 << 1;
+    
+    public static final int LIBUSB_HOTPLUG_ENUMERATE = 1 << 0;
+    
+    public static final int LIBUSB_HOTPLUG_MATCH_ANY = -1;
+    
+    public static final int LIBUSB_TRANSFER_COMPLETED = 0;
+    public static final int LIBUSB_TRANSFER_ERROR = 1;
+    public static final int LIBUSB_TRANSFER_TIMED_OUT = 2;
+    public static final int LIBUSB_TRANSFER_CANCELLED = 3;
+    public static final int LIBUSB_TRANSFER_STALL = 4;
+    public static final int LIBUSB_TRANSFER_NO_DEVICE = 5;
+    public static final int LIBUSB_TRANSFER_OVERFLOW = 6;
+    
+    public static final int LIBUSB_TRANSFER_TYPE_CONTROL = 0;
+    public static final int LIBUSB_TRANSFER_TYPE_ISOCHRONOUS = 1;
+    public static final int LIBUSB_TRANSFER_TYPE_BULK = 2;
+    public static final int LIBUSB_TRANSFER_TYPE_INTERRUPT = 3;
+    public static final int LIBUSB_TRANSFER_TYPE_BULK_STREAM = 4;
+    
     private static final MethodHandle libusb_init;
     public static int libusb_init(LibUsbContext ctx) {
         try {
@@ -240,6 +261,60 @@ public final class LibUsb {
         }
     }
     
+    private static final MethodHandle libusb_hotplug_register_callback;
+    public static int libusb_hotplug_register_callback(LibUsbContext ctx, int events, int flags, int vendor_id, int product_id, int dev_class, Addressable cb_fn, Addressable user_data, Addressable callback_handle) {
+        try {
+            return (int) libusb_hotplug_register_callback.invokeExact(context(ctx), events, flags, vendor_id, product_id, dev_class, cb_fn, user_data, callback_handle);
+        } catch(Throwable e) {
+            throw new RuntimeException("Failed to invoke libusb_hotplug_register_callback", e);
+        }
+    }
+    
+    private static final MethodHandle libusb_handle_events_timeout_completed;
+    public static int libusb_handle_events_timeout_completed(LibUsbContext ctx, Addressable tv, Addressable completed) {
+        try {
+            return (int) libusb_handle_events_timeout_completed.invokeExact(context(ctx), tv, completed);
+        } catch(Throwable e) {
+            throw new RuntimeException("Failed to invoke libusb_handle_events_timeout_completed", e);
+        }
+    }
+    
+    private static final MethodHandle libusb_hotplug_deregister_callback;
+    public static void libusb_hotplug_deregister_callback(LibUsbContext ctx, int callback_handle) {
+        try {
+            libusb_hotplug_deregister_callback.invokeExact(context(ctx), callback_handle);
+        } catch(Throwable e) {
+            throw new RuntimeException("Failed to invoke libusb_hotplug_deregister_callback", e);
+        }
+    }
+    
+    private static final MethodHandle libusb_alloc_transfer;
+    public static MemoryAddress libusb_alloc_transfer(int iso_packets) {
+        try {
+            return (MemoryAddress) libusb_alloc_transfer.invokeExact(iso_packets);
+        } catch(Throwable e) {
+            throw new RuntimeException("Failed to invoke libusb_alloc_transfer", e);
+        }
+    }
+    
+    private static final MethodHandle libusb_free_transfer;
+    public static void libusb_free_transfer(LibUsbTransfer transfer) {
+        try {
+            libusb_free_transfer.invokeExact((Addressable) transfer.segment());
+        } catch(Throwable e) {
+            throw new RuntimeException("Failed to invoke libusb_free_transfer", e);
+        }
+    }
+    
+    private static final MethodHandle libusb_submit_transfer;
+    public static int libusb_submit_transfer(LibUsbTransfer transfer) {
+        try {
+            return (int) libusb_submit_transfer.invokeExact((Addressable) transfer.segment());
+        } catch(Throwable e) {
+            throw new RuntimeException("Failed to invoke libusb_submit_transfer", e);
+        }
+    }
+    
     private static Addressable context(LibUsbContext ctx) {
         return ctx == null ? MemoryAddress.NULL : ctx.address();
     }
@@ -267,6 +342,12 @@ public final class LibUsb {
         libusb_bulk_transfer = binder.bind("libusb_bulk_transfer", JAVA_INT, ADDRESS, JAVA_BYTE, ADDRESS, JAVA_INT, ADDRESS, JAVA_INT);
         libusb_interrupt_transfer = binder.bind("libusb_interrupt_transfer", JAVA_INT, ADDRESS, JAVA_BYTE, ADDRESS, JAVA_INT, ADDRESS, JAVA_INT);
         libusb_claim_interface = binder.bind("libusb_claim_interface", JAVA_INT, ADDRESS, JAVA_INT);
+        libusb_hotplug_register_callback = binder.bind("libusb_hotplug_register_callback", JAVA_INT, ADDRESS, JAVA_INT, JAVA_INT, JAVA_INT, JAVA_INT, JAVA_INT, ADDRESS, ADDRESS, ADDRESS);
+        libusb_handle_events_timeout_completed = binder.bind("libusb_handle_events_timeout_completed", JAVA_INT, ADDRESS, ADDRESS, ADDRESS);
+        libusb_hotplug_deregister_callback = binder.bind("libusb_hotplug_deregister_callback", null, ADDRESS, JAVA_INT);
+        libusb_alloc_transfer = binder.bind("libusb_alloc_transfer", ADDRESS, JAVA_INT);
+        libusb_free_transfer = binder.bind("libusb_free_transfer", null, ADDRESS);
+        libusb_submit_transfer = binder.bind("libusb_submit_transfer", JAVA_INT, ADDRESS);
     }
     
     private LibUsb() {

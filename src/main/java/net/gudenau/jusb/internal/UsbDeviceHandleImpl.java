@@ -1,24 +1,31 @@
 package net.gudenau.jusb.internal;
 
+import net.gudenau.jusb.UsbAsyncTransfer;
 import net.gudenau.jusb.UsbDeviceHandle;
 import net.gudenau.jusb.UsbDirection;
 import net.gudenau.jusb.UsbException;
 import net.gudenau.jusb.internal.libusb.LibUsb;
 import net.gudenau.jusb.internal.libusb.LibUsbDeviceHandle;
+import net.gudenau.jusb.internal.libusb.LibUsbTransfer;
 
+import java.lang.foreign.MemoryAddress;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.MemorySession;
 import java.lang.foreign.ValueLayout;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeoutException;
 
+import static net.gudenau.jusb.internal.Utils.endpoint;
+
 public final class UsbDeviceHandleImpl implements UsbDeviceHandle {
+    private final JUsbImpl usb;
     private final LibUsbDeviceHandle handle;
     
-    public UsbDeviceHandleImpl(LibUsbDeviceHandle handle) {
+    public UsbDeviceHandleImpl(JUsbImpl usb, LibUsbDeviceHandle handle) {
+        this.usb = usb;
         this.handle = handle;
         
-        if(LibUsb.libusb_has_capability(LibUsb.LIBUSB_CAP_SUPPORTS_DETACH_KERNEL_DRIVER)) {
+        if(usb.enableDetach()) {
             LibUsb.libusb_set_auto_detach_kernel_driver(handle, true);
         }
     }
@@ -51,10 +58,6 @@ public final class UsbDeviceHandleImpl implements UsbDeviceHandle {
         }
         buffer.position(buffer.position() + result);
         return result;
-    }
-    
-    private static byte endpoint(int endpoint, UsbDirection direction) {
-        return (byte)(endpoint | (direction == UsbDirection.IN ? LibUsb.LIBUSB_ENDPOINT_IN : LibUsb.LIBUSB_ENDPOINT_OUT));
     }
     
     @Override
@@ -104,7 +107,24 @@ public final class UsbDeviceHandleImpl implements UsbDeviceHandle {
     }
     
     @Override
+    public UsbAsyncTransfer createTransfer() throws UsbException {
+        if(!usb.enableAsync()) {
+            throw new UsbException("Async transfers are not enabled");
+        }
+        
+        var address = LibUsb.libusb_alloc_transfer(0);
+        if(address.equals(MemoryAddress.NULL)) {
+            throw new UsbException("Failed to allocate libusb transfer structure");
+        }
+        return new UsbAsyncTransferImpl(this, new LibUsbTransfer(address));
+    }
+    
+    @Override
     public void close() {
         LibUsb.libusb_close(handle);
+    }
+    
+    LibUsbDeviceHandle handle() {
+        return handle;
     }
 }
