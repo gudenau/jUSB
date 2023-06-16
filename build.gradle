@@ -12,12 +12,14 @@ dependencies {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(20)
+        languageVersion = JavaLanguageVersion.of(project.javaVersion)
     }
 
     modularity.inferModulePath = true
 }
 
 compileJava {
-    options.compilerArgs += ['--enable-preview']
+    options.compilerArgs += [
+        '--enable-preview'
+    ]
 }
