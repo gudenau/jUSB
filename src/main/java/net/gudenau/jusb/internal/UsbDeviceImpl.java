@@ -9,19 +9,19 @@ import net.gudenau.jusb.internal.libusb.LibUsbDevice;
 import net.gudenau.jusb.internal.libusb.LibUsbDeviceDescriptor;
 import net.gudenau.jusb.internal.libusb.LibUsbDeviceHandle;
 
-import java.lang.foreign.MemorySession;
+import java.lang.foreign.Arena;
 import java.lang.foreign.ValueLayout;
 
 public final class UsbDeviceImpl implements UsbDevice {
     private final JUsbImpl usb;
     private final LibUsbDevice device;
-    private final MemorySession session;
+    private final Arena session;
     private final LibUsbDeviceDescriptor descriptor;
     
     public UsbDeviceImpl(JUsbImpl usb, LibUsbDevice device) {
         this.usb = usb;
         this.device = device;
-        session = MemorySession.openShared();
+        session = Arena.openShared();
         descriptor = new LibUsbDeviceDescriptor(session);
         // Doesn't fail anymore
         LibUsb.libusb_get_device_descriptor(device, descriptor);
@@ -34,7 +34,7 @@ public final class UsbDeviceImpl implements UsbDevice {
     
     @Override
     public UsbDeviceHandle open() throws UsbException {
-        try(var session = MemorySession.openConfined()) {
+        try(var session = Arena.openConfined()) {
             var pointer = session.allocate(ValueLayout.ADDRESS);
             var result = LibUsb.libusb_open(device, pointer);
             if(result != LibUsb.LIBUSB_SUCCESS) {

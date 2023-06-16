@@ -1,5 +1,5 @@
 package net.gudenau.jusb.internal.libusb;
 
-import java.lang.foreign.MemoryAddress;
+import java.lang.foreign.MemorySegment;
 
-public record LibUsbDevice(MemoryAddress address) {}
+public record LibUsbDevice(MemorySegment address) {}

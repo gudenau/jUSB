@@ -6,9 +6,8 @@ import net.gudenau.jusb.UsbDevice;
 import net.gudenau.jusb.UsbException;
 import net.gudenau.jusb.internal.libusb.*;
 
-import java.lang.foreign.MemoryAddress;
+import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.MemorySession;
 import java.lang.foreign.ValueLayout;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +42,7 @@ public final class JUsbImpl implements JUsb {
     private final boolean enableHotplug;
     private final boolean enableDetach;
     private final Set<DeviceHotplugCallback> hotplugCallbacks;
-    private final OptionalSession session = new OptionalSession();
+    private final LazyArena session = new LazyArena();
     private final MemorySegment hotplugCallback;
     private final int hotplugHandle;
     private final Thread eventThread;
@@ -67,9 +66,9 @@ public final class JUsbImpl implements JUsb {
                     });
                 }
                 return false;
-            }, session.get());
+            }, session.get().scope());
             
-            try(var session = MemorySession.openConfined()) {
+            try(var session = Arena.openConfined()) {
                 var handlePointer = session.allocate(ValueLayout.JAVA_INT);
                 LibUsb.libusb_hotplug_register_callback(
                     context,
@@ -79,7 +78,7 @@ public final class JUsbImpl implements JUsb {
                     LibUsb.LIBUSB_HOTPLUG_MATCH_ANY,
                     LibUsb.LIBUSB_HOTPLUG_MATCH_ANY,
                     hotplugCallback,
-                    MemoryAddress.NULL,
+                    MemorySegment.NULL,
                     handlePointer
                 );
                 hotplugHandle = handlePointer.get(ValueLayout.JAVA_INT, 0);
@@ -104,7 +103,7 @@ public final class JUsbImpl implements JUsb {
     }
     
     private void eventThread() {
-        try(var session = MemorySession.openConfined()) {
+        try(var session = Arena.openConfined()) {
             var timeout = new Timeval(session);
             while(eventThreadRunning.get(ValueLayout.JAVA_INT, 0) == 0) {
                 timeout.tv_sec(-1).tv_usec(-1);
@@ -115,13 +114,14 @@ public final class JUsbImpl implements JUsb {
     
     @Override
     public List<UsbDevice> devices() throws UsbException {
-        try(var session = MemorySession.openConfined()) {
-            var pointer = session.allocate(ValueLayout.ADDRESS).address();
+        try(var session = Arena.openConfined()) {
+            var pointer = session.allocate(ValueLayout.ADDRESS);
             var result = LibUsb.libusb_get_device_list(context, pointer);
             if(result <= 0) {
                 throw new UsbException("Failed to get device list: " + LibUsb.libusb_error_name((int) result));
             }
             pointer = pointer.get(ValueLayout.ADDRESS, 0);
+            pointer = MemorySegment.ofAddress(pointer.address(), result * ValueLayout.ADDRESS.byteSize(), pointer.scope());
     
             List<UsbDevice> devices;
             try {

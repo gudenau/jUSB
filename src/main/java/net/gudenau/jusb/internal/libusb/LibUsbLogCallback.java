@@ -12,15 +12,15 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 public interface LibUsbLogCallback {
     void invoke(LibUsbContext ctx, int level, String str);
     
-    default void invoke(MemoryAddress ctx, int level, MemoryAddress str) {
-        invoke(ctx.equals(MemoryAddress.NULL) ? null : new LibUsbContext().set(ctx), level, str == null ? null : str.getUtf8String(0));
+    default void invoke(MemorySegment ctx, int level, MemorySegment str) {
+        invoke(ctx.equals(MemorySegment.NULL) ? null : new LibUsbContext().set(ctx), level, str == null ? null : str.getUtf8String(0));
     }
     
-    static MemorySegment allocate(LibUsbLogCallback callback, MemorySession session) {
-        return ForeignUtils.upcall(OfAddress.BASE_HANDLE.bindTo(callback), OfAddress.DESCRIPTOR, session);
+    static MemorySegment allocate(LibUsbLogCallback callback, SegmentScope scope) {
+        return ForeignUtils.upcall(OfAddress.BASE_HANDLE.bindTo(callback), OfAddress.DESCRIPTOR, scope);
     }
     
-    static LibUsbLogCallback ofAddress(MemoryAddress address) {
+    static LibUsbLogCallback ofAddress(MemorySegment address) {
         return new OfAddress(address);
     }
     
@@ -31,14 +31,14 @@ public interface LibUsbLogCallback {
         
         private final MethodHandle handle;
     
-        public OfAddress(MemoryAddress address) {
+        public OfAddress(MemorySegment address) {
             handle = DOWNCALL.bindTo(address);
         }
     
         @Override
-        public void invoke(MemoryAddress ctx, int level, MemoryAddress str) {
+        public void invoke(MemorySegment ctx, int level, MemorySegment str) {
             try {
-                handle.invokeExact((Addressable) ctx, level, (Addressable) str);
+                handle.invokeExact(ctx, level, str);
             } catch(Throwable e) {
                 throw new RuntimeException("Failed to invoke LibUsbLogCallback", e);
             }
@@ -46,11 +46,11 @@ public interface LibUsbLogCallback {
     
         @Override
         public void invoke(LibUsbContext ctx, int level, String str) {
-            try(var session = MemorySession.openConfined()) {
+            try(var session = Arena.openConfined()) {
                 invoke(
-                    ctx == null ? MemoryAddress.NULL : ctx.address(),
+                    ctx == null ? MemorySegment.NULL : ctx.address(),
                     level,
-                    str == null ? MemoryAddress.NULL : session.allocateUtf8String(str).address()
+                    str == null ? MemorySegment.NULL : session.allocateUtf8String(str)
                 );
             }
         }

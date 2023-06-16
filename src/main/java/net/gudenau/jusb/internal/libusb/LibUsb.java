@@ -71,12 +71,12 @@ public final class LibUsb {
     public static int libusb_init(LibUsbContext ctx) {
         try {
             if(ctx == null) {
-                return (int) libusb_init.invokeExact((Addressable) MemoryAddress.NULL);
+                return (int) libusb_init.invokeExact(MemorySegment.NULL);
             }
             
-            try(var session = MemorySession.openConfined()) {
+            try(var session = Arena.openConfined()) {
                 var pointer = session.allocate(ADDRESS);
-                var result = (int) libusb_init.invokeExact((Addressable) pointer);
+                var result = (int) libusb_init.invokeExact(pointer);
                 if(result == LIBUSB_SUCCESS) {
                     ctx.set(pointer.get(ADDRESS, 0));
                 }
@@ -116,7 +116,7 @@ public final class LibUsb {
     }
     
     private static final MethodHandle libusb_set_log_cb;
-    public static void libusb_set_log_cb(LibUsbContext ctx, Addressable cb, int mode) {
+    public static void libusb_set_log_cb(LibUsbContext ctx, MemorySegment cb, int mode) {
         try {
             libusb_set_log_cb.invokeExact(context(ctx), cb, mode);
         } catch(Throwable e) {
@@ -125,7 +125,7 @@ public final class LibUsb {
     }
     
     private static final MethodHandle libusb_get_device_list;
-    public static long libusb_get_device_list(LibUsbContext ctx, Addressable list) {
+    public static long libusb_get_device_list(LibUsbContext ctx, MemorySegment list) {
         try {
             return (long) libusb_get_device_list.invokeExact(context(ctx), list);
         } catch(Throwable e) {
@@ -134,7 +134,7 @@ public final class LibUsb {
     }
     
     private static final MethodHandle libusb_free_device_list;
-    public static void libusb_free_device_list(Addressable list, boolean unref_devices) {
+    public static void libusb_free_device_list(MemorySegment list, boolean unref_devices) {
         try {
             libusb_free_device_list.invokeExact(list, unref_devices ? 1 : 0);
         } catch(Throwable e) {
@@ -145,7 +145,7 @@ public final class LibUsb {
     private static final MethodHandle libusb_get_device_descriptor;
     public static int libusb_get_device_descriptor(LibUsbDevice device, LibUsbDeviceDescriptor desc) {
         try {
-            return (int) libusb_get_device_descriptor.invokeExact((Addressable) device.address(), (Addressable) desc.segment());
+            return (int) libusb_get_device_descriptor.invokeExact(device.address(), desc.segment());
         } catch(Throwable e) {
             throw new RuntimeException("Failed to invoke libusb_get_device_descriptor", e);
         }
@@ -154,8 +154,8 @@ public final class LibUsb {
     private static final MethodHandle libusb_error_name;
     public static String libusb_error_name(int error_code) {
         try {
-            var address = (MemoryAddress) libusb_error_name.invokeExact(error_code);
-            return address.equals(MemoryAddress.NULL) ? null : address.getUtf8String(0);
+            var address = (MemorySegment) libusb_error_name.invokeExact(error_code);
+            return address.equals(MemorySegment.NULL) ? null : address.getUtf8String(0);
         } catch(Throwable e) {
             throw new RuntimeException("Failed to invoke libusb_error_name", e);
         }
@@ -173,7 +173,7 @@ public final class LibUsb {
     private static final MethodHandle libusb_ref_device;
     public static LibUsbDevice libusb_ref_device(LibUsbDevice device) {
         try {
-            var ignored = (MemoryAddress) libusb_ref_device.invokeExact((Addressable) device.address());
+            var ignored = (MemorySegment) libusb_ref_device.invokeExact(device.address());
         } catch(Throwable e) {
             throw new RuntimeException("Failed to invoke libusb_ref_device", e);
         }
@@ -183,16 +183,16 @@ public final class LibUsb {
     private static final MethodHandle libusb_unref_device;
     public static void libusb_unref_device(LibUsbDevice device) {
         try {
-            libusb_unref_device.invokeExact((Addressable) device.address());
+            libusb_unref_device.invokeExact(device.address());
         } catch(Throwable e) {
             throw new RuntimeException("Failed to invoke libusb_ref_device", e);
         }
     }
     
     private static final MethodHandle libusb_open;
-    public static int libusb_open(LibUsbDevice dev, Addressable dev_handle) {
+    public static int libusb_open(LibUsbDevice dev, MemorySegment dev_handle) {
         try {
-            return (int) libusb_open.invokeExact((Addressable) dev.address(), dev_handle);
+            return (int) libusb_open.invokeExact(dev.address(), dev_handle);
         } catch(Throwable e) {
             throw new RuntimeException("Failed to invoke libusb_open", e);
         }
@@ -201,7 +201,7 @@ public final class LibUsb {
     private static final MethodHandle libusb_close;
     public static void libusb_close(LibUsbDeviceHandle dev_handle) {
         try {
-            libusb_close.invokeExact((Addressable) dev_handle.address());
+            libusb_close.invokeExact(dev_handle.address());
         } catch(Throwable e) {
             throw new RuntimeException("Failed to invoke libusb_close", e);
         }
@@ -210,7 +210,7 @@ public final class LibUsb {
     private static final MethodHandle libusb_set_auto_detach_kernel_driver;
     public static int libusb_set_auto_detach_kernel_driver(LibUsbDeviceHandle dev_handle, boolean enable) {
         try {
-            return (int) libusb_set_auto_detach_kernel_driver.invokeExact((Addressable) dev_handle.address(), enable ? 1 : 0);
+            return (int) libusb_set_auto_detach_kernel_driver.invokeExact(dev_handle.address(), enable ? 1 : 0);
         } catch(Throwable e) {
             throw new RuntimeException("Failed to invoke libusb_set_auto_detach_kernel_driver", e);
         }
@@ -219,7 +219,7 @@ public final class LibUsb {
     private static final MethodHandle libusb_set_configuration;
     public static int libusb_set_configuration(LibUsbDeviceHandle handle, int configuration) {
         try {
-            return (int) libusb_set_configuration.invokeExact((Addressable) handle.address(), configuration);
+            return (int) libusb_set_configuration.invokeExact(handle.address(), configuration);
         } catch(Throwable e) {
             throw new RuntimeException("Failed to invoke libusb_set_configuration", e);
         }
@@ -228,25 +228,25 @@ public final class LibUsb {
     private static final MethodHandle libusb_control_transfer;
     public static int libusb_control_transfer(LibUsbDeviceHandle dev_handle, byte bmRequestType, byte bRequest, short wValue, short wIndex, MemorySegment data, short wLength, int timeout) {
         try {
-            return (int) libusb_control_transfer.invokeExact((Addressable) dev_handle.address(), bmRequestType, bRequest, wValue, wIndex, data, wLength, timeout);
+            return (int) libusb_control_transfer.invokeExact(dev_handle.address(), bmRequestType, bRequest, wValue, wIndex, data, wLength, timeout);
         } catch(Throwable e) {
             throw new RuntimeException("Failed to invoke libusb_bulk_transfer", e);
         }
     }
     
     private static final MethodHandle libusb_bulk_transfer;
-    public static int libusb_bulk_transfer(LibUsbDeviceHandle dev_handle, byte endpoint, Addressable data, int length, Addressable transferred, int timeout) {
+    public static int libusb_bulk_transfer(LibUsbDeviceHandle dev_handle, byte endpoint, MemorySegment data, int length, MemorySegment transferred, int timeout) {
         try {
-            return (int) libusb_bulk_transfer.invokeExact((Addressable) dev_handle.address(), endpoint, data, length, transferred, timeout);
+            return (int) libusb_bulk_transfer.invokeExact(dev_handle.address(), endpoint, data, length, transferred, timeout);
         } catch(Throwable e) {
             throw new RuntimeException("Failed to invoke libusb_bulk_transfer", e);
         }
     }
     
     private static final MethodHandle libusb_interrupt_transfer;
-    public static int libusb_interrupt_transfer(LibUsbDeviceHandle dev_handle, byte endpoint, Addressable data, int length, Addressable transferred, int timeout) {
+    public static int libusb_interrupt_transfer(LibUsbDeviceHandle dev_handle, byte endpoint, MemorySegment data, int length, MemorySegment transferred, int timeout) {
         try {
-            return (int) libusb_interrupt_transfer.invokeExact((Addressable) dev_handle.address(), endpoint, data, length, transferred, timeout);
+            return (int) libusb_interrupt_transfer.invokeExact(dev_handle.address(), endpoint, data, length, transferred, timeout);
         } catch(Throwable e) {
             throw new RuntimeException("Failed to invoke libusb_interrupt_transfer", e);
         }
@@ -255,14 +255,14 @@ public final class LibUsb {
     private static final MethodHandle libusb_claim_interface;
     public static int libusb_claim_interface(LibUsbDeviceHandle dev_handle, int interface_number) {
         try {
-            return (int) libusb_claim_interface.invokeExact((Addressable) dev_handle.address(), interface_number);
+            return (int) libusb_claim_interface.invokeExact(dev_handle.address(), interface_number);
         } catch(Throwable e) {
             throw new RuntimeException("Failed to invoke libusb_claim_interface", e);
         }
     }
     
     private static final MethodHandle libusb_hotplug_register_callback;
-    public static int libusb_hotplug_register_callback(LibUsbContext ctx, int events, int flags, int vendor_id, int product_id, int dev_class, Addressable cb_fn, Addressable user_data, Addressable callback_handle) {
+    public static int libusb_hotplug_register_callback(LibUsbContext ctx, int events, int flags, int vendor_id, int product_id, int dev_class, MemorySegment cb_fn, MemorySegment user_data, MemorySegment callback_handle) {
         try {
             return (int) libusb_hotplug_register_callback.invokeExact(context(ctx), events, flags, vendor_id, product_id, dev_class, cb_fn, user_data, callback_handle);
         } catch(Throwable e) {
@@ -271,7 +271,7 @@ public final class LibUsb {
     }
     
     private static final MethodHandle libusb_handle_events_timeout_completed;
-    public static int libusb_handle_events_timeout_completed(LibUsbContext ctx, Addressable tv, Addressable completed) {
+    public static int libusb_handle_events_timeout_completed(LibUsbContext ctx, MemorySegment tv, MemorySegment completed) {
         try {
             return (int) libusb_handle_events_timeout_completed.invokeExact(context(ctx), tv, completed);
         } catch(Throwable e) {
@@ -289,9 +289,9 @@ public final class LibUsb {
     }
     
     private static final MethodHandle libusb_alloc_transfer;
-    public static MemoryAddress libusb_alloc_transfer(int iso_packets) {
+    public static MemorySegment libusb_alloc_transfer(int iso_packets) {
         try {
-            return (MemoryAddress) libusb_alloc_transfer.invokeExact(iso_packets);
+            return (MemorySegment) libusb_alloc_transfer.invokeExact(iso_packets);
         } catch(Throwable e) {
             throw new RuntimeException("Failed to invoke libusb_alloc_transfer", e);
         }
@@ -300,7 +300,7 @@ public final class LibUsb {
     private static final MethodHandle libusb_free_transfer;
     public static void libusb_free_transfer(LibUsbTransfer transfer) {
         try {
-            libusb_free_transfer.invokeExact((Addressable) transfer.segment());
+            libusb_free_transfer.invokeExact(transfer.segment());
         } catch(Throwable e) {
             throw new RuntimeException("Failed to invoke libusb_free_transfer", e);
         }
@@ -309,14 +309,14 @@ public final class LibUsb {
     private static final MethodHandle libusb_submit_transfer;
     public static int libusb_submit_transfer(LibUsbTransfer transfer) {
         try {
-            return (int) libusb_submit_transfer.invokeExact((Addressable) transfer.segment());
+            return (int) libusb_submit_transfer.invokeExact(transfer.segment());
         } catch(Throwable e) {
             throw new RuntimeException("Failed to invoke libusb_submit_transfer", e);
         }
     }
     
-    private static Addressable context(LibUsbContext ctx) {
-        return ctx == null ? MemoryAddress.NULL : ctx.address();
+    private static MemorySegment context(LibUsbContext ctx) {
+        return ctx == null ? MemorySegment.NULL : ctx.address();
     }
     
     static {
@@ -324,8 +324,8 @@ public final class LibUsb {
         libusb_init = binder.bind("libusb_init", JAVA_INT, ADDRESS);
         libusb_exit = binder.bind("libusb_exit", null, ADDRESS);
         libusb_set_debug = binder.bind("libusb_set_debug", null, ADDRESS, JAVA_INT);
-        var libusb_set_option = FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT);
-        libusb_set_option$I = binder.bind("libusb_set_option", libusb_set_option.asVariadic(JAVA_INT));
+        var libusb_set_option = FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT, JAVA_INT);
+        libusb_set_option$I = binder.bind("libusb_set_option", libusb_set_option, Linker.Option.firstVariadicArg(3));
         libusb_set_log_cb = binder.bind("libusb_set_log_cb", null, ADDRESS, ADDRESS, JAVA_INT);
         libusb_get_device_list = binder.bind("libusb_get_device_list", JAVA_LONG, ADDRESS, ADDRESS);
         libusb_free_device_list = binder.bind("libusb_free_device_list", null, ADDRESS, JAVA_INT);

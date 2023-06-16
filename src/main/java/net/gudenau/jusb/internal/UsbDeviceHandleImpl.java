@@ -8,9 +8,8 @@ import net.gudenau.jusb.internal.libusb.LibUsb;
 import net.gudenau.jusb.internal.libusb.LibUsbDeviceHandle;
 import net.gudenau.jusb.internal.libusb.LibUsbTransfer;
 
-import java.lang.foreign.MemoryAddress;
+import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.MemorySession;
 import java.lang.foreign.ValueLayout;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeoutException;
@@ -66,7 +65,7 @@ public final class UsbDeviceHandleImpl implements UsbDeviceHandle {
             throw new IllegalArgumentException("Buffer can't be read-only for an in transfer");
         }
         
-        try(var session = MemorySession.openConfined()) {
+        try(var session = Arena.openConfined()) {
             var segment = MemorySegment.ofBuffer(buffer);
             var transferredPointer = session.allocate(ValueLayout.JAVA_INT);
             var result = LibUsb.libusb_bulk_transfer(handle, endpoint(endpoint, direction), segment, buffer.remaining(), transferredPointer, (int) Math.min(Integer.MAX_VALUE, timeout));
@@ -89,7 +88,7 @@ public final class UsbDeviceHandleImpl implements UsbDeviceHandle {
             throw new IllegalArgumentException("Buffer can't be read-only for an in transfer");
         }
     
-        try(var session = MemorySession.openConfined()) {
+        try(var session = Arena.openConfined()) {
             var segment = MemorySegment.ofBuffer(buffer);
             var transferredPointer = session.allocate(ValueLayout.JAVA_INT);
             var result = LibUsb.libusb_interrupt_transfer(handle, endpoint(endpoint, direction), segment, buffer.remaining(), transferredPointer, (int) Math.min(Integer.MAX_VALUE, timeout));
@@ -113,7 +112,7 @@ public final class UsbDeviceHandleImpl implements UsbDeviceHandle {
         }
         
         var address = LibUsb.libusb_alloc_transfer(0);
-        if(address.equals(MemoryAddress.NULL)) {
+        if(address.equals(MemorySegment.NULL)) {
             throw new UsbException("Failed to allocate libusb transfer structure");
         }
         return new UsbAsyncTransferImpl(this, new LibUsbTransfer(address));

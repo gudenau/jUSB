@@ -70,10 +70,10 @@ public final class ForeignUtils {
             }
         }
         
-        var session = MemorySession.openShared();
+        var session = Arena.openShared();
         SymbolLookup lookup;
         try {
-            lookup = SymbolLookup.libraryLookup(path, session);
+            lookup = SymbolLookup.libraryLookup(path, session.scope());
         } catch(Throwable e) {
             throw new RuntimeException("Failed to load " + library, e);
         }
@@ -85,13 +85,13 @@ public final class ForeignUtils {
         
         return new Binder() {
             @Override
-            public MethodHandle bind(String name, FunctionDescriptor descriptor) {
-                return LINKER.downcallHandle(lookup(name), descriptor);
+            public MethodHandle bind(String name, FunctionDescriptor descriptor, Linker.Option... options) {
+                return LINKER.downcallHandle(lookup(name), descriptor, options);
             }
     
             @Override
             public MemorySegment lookup(String name) {
-                return lookup.lookup(name).orElseThrow(()-> new RuntimeException("Failed to find symbol " + name + " in " + library));
+                return lookup.find(name).orElseThrow(()-> new RuntimeException("Failed to find symbol " + name + " in " + library));
             }
         };
     }
@@ -103,23 +103,29 @@ public final class ForeignUtils {
     public static MethodHandle findBaseHandle(Class<?> owner, FunctionDescriptor descriptor) {
         try {
             return MethodHandles.lookup()
-                .findVirtual(owner, "invoke", Linker.upcallType(descriptor));
+                .findVirtual(owner, "invoke", descriptor.toMethodType());
         } catch(NoSuchMethodException | IllegalAccessException e) {
             throw new RuntimeException("Failed to find base handle for " + owner.getName(), e);
         }
     }
     
-    public static MemorySegment upcall(MethodHandle handle, FunctionDescriptor descriptpr, MemorySession session) {
-        return LINKER.upcallStub(handle, descriptpr, session);
+    public static MemorySegment upcall(MethodHandle handle, FunctionDescriptor descriptpr, SegmentScope scope) {
+        return LINKER.upcallStub(handle, descriptpr, scope);
     }
-    
+
+    public static void verifySize(MemorySegment segment, MemoryLayout layout) {
+        if(segment.byteSize() < layout.byteSize()) {
+            throw new IllegalArgumentException("segment was too small for layout of size " + layout.byteSize());
+        }
+    }
+
     public interface Binder {
         default MethodHandle bind(String name, MemoryLayout result, MemoryLayout... args) {
             var descriptor = result == null ? FunctionDescriptor.ofVoid(args) : FunctionDescriptor.of(result, args);
             return bind(name, descriptor);
         }
     
-        MethodHandle bind(String name, FunctionDescriptor descriptor);
+        MethodHandle bind(String name, FunctionDescriptor descriptor, Linker.Option... options);
         MemorySegment lookup(String name);
     }
     

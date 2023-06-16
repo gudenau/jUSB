@@ -7,8 +7,8 @@ import net.gudenau.jusb.internal.libusb.LibUsb;
 import net.gudenau.jusb.internal.libusb.LibUsbTransfer;
 import net.gudenau.jusb.internal.libusb.LibUsbTransferCallback;
 
+import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.MemorySession;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -19,7 +19,7 @@ import static net.gudenau.jusb.internal.Utils.endpoint;
 
 public final class UsbAsyncTransferImpl implements UsbAsyncTransfer {
     private final LibUsbTransfer transfer;
-    private final MemorySession session;
+    private final Arena session;
     private volatile MemorySegment segment;
     private volatile CompletableFuture<Result> future;
     private volatile boolean closed;
@@ -27,7 +27,7 @@ public final class UsbAsyncTransferImpl implements UsbAsyncTransfer {
     public UsbAsyncTransferImpl(UsbDeviceHandleImpl handle, LibUsbTransfer transfer) {
         this.transfer = transfer;
         
-        session = MemorySession.openShared();
+        session = Arena.openShared();
         var callback = LibUsbTransferCallback.allocate((callbackTransfer) -> {
             synchronized(this) {
                 var status = callbackTransfer.status();
@@ -49,7 +49,7 @@ public final class UsbAsyncTransferImpl implements UsbAsyncTransfer {
                 
                 future = null;
             }
-        }, session);
+        }, session.scope());
         
         transfer.segment().fill((byte) 0);
         transfer.dev_handle(handle.handle())

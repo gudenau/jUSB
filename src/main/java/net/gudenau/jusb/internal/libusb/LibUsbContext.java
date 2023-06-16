@@ -3,14 +3,14 @@ package net.gudenau.jusb.internal.libusb;
 import java.lang.foreign.*;
 
 public final class LibUsbContext {
-    private MemoryAddress address;
+    private MemorySegment address;
     
-    LibUsbContext set(MemoryAddress address) {
+    LibUsbContext set(MemorySegment address) {
         this.address = address;
         return this;
     }
     
-    public MemoryAddress address() {
+    public MemorySegment address() {
         return address;
     }
 }

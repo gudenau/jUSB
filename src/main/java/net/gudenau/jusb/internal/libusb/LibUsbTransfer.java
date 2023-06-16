@@ -1,5 +1,7 @@
 package net.gudenau.jusb.internal.libusb;
 
+import net.gudenau.jusb.internal.ForeignUtils;
+
 import java.lang.foreign.*;
 import java.lang.invoke.VarHandle;
 
@@ -35,13 +37,13 @@ public record LibUsbTransfer(MemorySegment segment) {
     private static final VarHandle user_data = layoutHandle(LAYOUT, "user_data");
     private static final VarHandle buffer = layoutHandle(LAYOUT, "buffer");
     private static final VarHandle num_iso_packets = layoutHandle(LAYOUT, "num_iso_packets");
-    
-    public LibUsbTransfer(Addressable address) {
-        this(MemorySegment.ofAddress(address.address(), LAYOUT.byteSize(), MemorySession.global()));
+
+    public LibUsbTransfer {
+        ForeignUtils.verifySize(segment, LAYOUT);
     }
     
     public LibUsbDeviceHandle dev_handle() {
-        return new LibUsbDeviceHandle((MemoryAddress) dev_handle.get(segment));
+        return new LibUsbDeviceHandle((MemorySegment) dev_handle.get(segment));
     }
     
     public byte flags() {
@@ -72,16 +74,16 @@ public record LibUsbTransfer(MemorySegment segment) {
         return (int) actual_length.get(segment);
     }
     
-    public Addressable callback() {
-        return (MemoryAddress) callback.get(segment);
+    public MemorySegment callback() {
+        return (MemorySegment) callback.get(segment);
     }
     
-    public Addressable user_data() {
-        return (MemoryAddress) user_data.get(segment);
+    public MemorySegment user_data() {
+        return (MemorySegment) user_data.get(segment);
     }
     
-    public Addressable buffer() {
-        return (MemoryAddress) buffer.get(segment);
+    public MemorySegment buffer() {
+        return (MemorySegment) buffer.get(segment);
     }
     
     public int num_iso_packets() {
@@ -89,7 +91,7 @@ public record LibUsbTransfer(MemorySegment segment) {
     }
     
     public LibUsbTransfer dev_handle(LibUsbDeviceHandle value) {
-        dev_handle.set(segment, (Addressable) value.address());
+        dev_handle.set(segment, (MemorySegment) value.address());
         return this;
     }
     
@@ -128,17 +130,17 @@ public record LibUsbTransfer(MemorySegment segment) {
         return this;
     }
     
-    public LibUsbTransfer callback(Addressable value) {
+    public LibUsbTransfer callback(MemorySegment value) {
         callback.set(segment, value);
         return this;
     }
     
-    public LibUsbTransfer user_data(Addressable value) {
+    public LibUsbTransfer user_data(MemorySegment value) {
         user_data.set(segment, value);
         return this;
     }
     
-    public LibUsbTransfer buffer(Addressable value) {
+    public LibUsbTransfer buffer(MemorySegment value) {
         buffer.set(segment, value);
         return this;
     }
