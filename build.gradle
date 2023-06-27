@@ -1,16 +1,43 @@
+import java.nio.file.Files
+import java.nio.file.LinkOption
+import java.util.stream.Collectors
+
 plugins {
     id 'java'
+    id 'maven-publish'
+}
+
+group = 'net.gudenau'
+version = "0.0.2-java-${project.javaVersion}"
+
+base {
+    archivesName = 'jUSB'
+}
+
+var envPath = rootProject.projectDir.toPath().resolve('.env')
+Map<String, String> environment = Map.of()
+if(Files.isRegularFile(envPath, LinkOption.NOFOLLOW_LINKS) && Files.isReadable(envPath)) {
+    try(var reader = Files.newBufferedReader(envPath)) {
+        environment = reader.lines()
+                .map((line) -> {
+                    var index = line.indexOf('#')
+                    return index == -1 ? line : line.substring(0, index)
+                })
+                .filter((line) -> !line.isBlank())
+                .map((line) -> line.split('=', 2))
+                .filter((split) -> split.length == 2)
+                .collect(Collectors.toUnmodifiableMap((split) -> split[0].trim(), (split) -> split[1].trim()))
+    }
 }
 
 repositories {
     mavenCentral()
 }
 
-dependencies {
-
-}
-
 java {
+    withSourcesJar()
+    withJavadocJar()
+
     toolchain {
         languageVersion = JavaLanguageVersion.of(project.javaVersion)
     }
@@ -23,3 +50,32 @@ compileJava {
         '--enable-preview'
     ]
 }
+
+javadoc.options {
+    addBooleanOption('-enable-preview', true)
+    addStringOption('-release', project.javaVersion)
+}
+
+// configure the maven publication
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+
+    repositories {
+        var keys = Set.of('MAVEN_URL', 'MAVEN_USER', 'MAVEN_PASS')
+        if (environment.keySet().containsAll(keys)) {
+            maven {
+                url = environment.get('MAVEN_URL')
+                allowInsecureProtocol = true
+                credentials {
+                    username = environment.get('MAVEN_USER')
+                    password = environment.get('MAVEN_PASS')
+                }
+            }
+        }
+    }
+}
+

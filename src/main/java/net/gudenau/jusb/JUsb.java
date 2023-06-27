@@ -2,10 +2,12 @@ package net.gudenau.jusb;
 
 import net.gudenau.jusb.internal.JUsbImpl;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * The primary interface for JUsb.
@@ -51,7 +53,45 @@ public sealed interface JUsb extends AutoCloseable permits JUsbImpl {
      * @throws UsbException if there was an error listing USB devices
      */
     List<UsbDevice> devices() throws UsbException;
-    
+
+    /**
+     * A fake vendor ID that matches all vendor IDs in {@link #devices(int, int)}
+     */
+    int VID_ANY = -1;
+
+    /**
+     * A fake product ID that matches all product IDs in {@link #devices(int, int)}
+     */
+    int PID_ANY = -1;
+
+    /**
+     * Retrieves a list of USB devices with the matching vendor and product IDs. Use {@link #VID_ANY} for any vendor ID
+     * or {@link #PID_ANY} for any product ID.
+     *
+     * @return An immutable list of attached USB devices
+     * @throws UsbException if there was an error listing USB devices
+     */
+    default List<UsbDevice> devices(int vid, int pid) throws IOException {
+        if(vid == VID_ANY && pid == PID_ANY) {
+            return devices();
+        }
+
+        return devices().stream()
+            .filter((device) -> {
+                var descriptor = device.descriptor();
+                if(
+                    (vid == VID_ANY || descriptor.idVendor() == vid) &&
+                    (pid == PID_ANY || descriptor.idProduct() == pid)
+                ) {
+                    return true;
+                }
+
+                device.close();
+                return false;
+            })
+            .toList();
+    }
+
     @Override void close() throws UsbException;
     
     /**

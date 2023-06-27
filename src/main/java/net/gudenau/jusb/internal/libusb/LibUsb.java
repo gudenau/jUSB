@@ -330,7 +330,7 @@ public final class LibUsb {
         libusb_get_device_list = binder.bind("libusb_get_device_list", JAVA_LONG, ADDRESS, ADDRESS);
         libusb_free_device_list = binder.bind("libusb_free_device_list", null, ADDRESS, JAVA_INT);
         libusb_get_device_descriptor = binder.bind("libusb_get_device_descriptor", JAVA_INT, ADDRESS, ADDRESS);
-        libusb_error_name = binder.bind("libusb_error_name", ADDRESS, JAVA_INT);
+        libusb_error_name = binder.bind("libusb_error_name", ADDRESS.asUnbounded(), JAVA_INT);
         libusb_has_capability = binder.bind("libusb_has_capability", JAVA_INT, JAVA_INT);
         libusb_ref_device = binder.bind("libusb_ref_device", ADDRESS, ADDRESS);
         libusb_unref_device = binder.bind("libusb_unref_device", null, ADDRESS);
