@@ -1,11 +1,14 @@
 package net.gudenau.jusb.internal.libusb;
 
 import net.gudenau.jusb.internal.ForeignUtils;
+import net.gudenau.jusb.internal.libusb.descriptor.LibUsbConfigDescriptor;
+import net.gudenau.jusb.internal.libusb.descriptor.LibUsbDeviceDescriptor;
 
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 
 import static java.lang.foreign.ValueLayout.*;
+import static net.gudenau.jusb.internal.ForeignUtils.UNBOUND_ADDRESS;
 
 @SuppressWarnings("PointlessBitwiseExpression")
 public final class LibUsb {
@@ -224,6 +227,15 @@ public final class LibUsb {
             throw new RuntimeException("Failed to invoke libusb_set_configuration", e);
         }
     }
+
+    private static final MethodHandle libusb_get_configuration;
+    public static int libusb_get_configuration(LibUsbDeviceHandle handle, MemorySegment config) {
+        try {
+            return (int) libusb_get_configuration.invokeExact(handle.address(), config);
+        } catch(Throwable e) {
+            throw new RuntimeException("Failed to invoke libusb_get_configuration", e);
+        }
+    }
     
     private static final MethodHandle libusb_control_transfer;
     public static int libusb_control_transfer(LibUsbDeviceHandle dev_handle, byte bmRequestType, byte bRequest, short wValue, short wIndex, MemorySegment data, short wLength, int timeout) {
@@ -314,7 +326,58 @@ public final class LibUsb {
             throw new RuntimeException("Failed to invoke libusb_submit_transfer", e);
         }
     }
-    
+
+    private static final MethodHandle libusb_get_active_config_descriptor;
+    public static int libusb_get_active_config_descriptor(LibUsbDevice device, MemorySegment config) {
+        try {
+            return (int) libusb_get_active_config_descriptor.invokeExact(device.address(), config);
+        } catch(Throwable e) {
+            throw new RuntimeException("Failed to invoke libusb_get_active_config_descriptor", e);
+        }
+    }
+
+    private static final MethodHandle libusb_get_config_descriptor;
+    public static int libusb_get_config_descriptor(LibUsbDevice dev, byte config_index, MemorySegment config) {
+        try {
+            return (int) libusb_get_config_descriptor.invokeExact(dev.address(), config_index, config);
+        } catch(Throwable e) {
+            throw new RuntimeException("Failed to invoke libusb_get_config_descriptor", e);
+        }
+    }
+
+    private static final MethodHandle libusb_get_config_descriptor_by_value;
+    public static int libusb_get_config_descriptor_by_value(LibUsbDevice dev, byte bConfigurationValue, MemorySegment config) {
+        try {
+            return (int) libusb_get_config_descriptor_by_value.invokeExact(dev.address(), bConfigurationValue, config);
+        } catch(Throwable e) {
+            throw new RuntimeException("Failed to invoke libusb_get_config_descriptor_by_value", e);
+        }
+    }
+
+    private static final MethodHandle libusb_free_config_descriptor;
+    public static void libusb_free_config_descriptor(LibUsbConfigDescriptor config) {
+        try {
+            libusb_free_config_descriptor.invokeExact(config.segment());
+        } catch(Throwable e) {
+            throw new RuntimeException("Failed to invoke libusb_free_config_descriptor", e);
+        }
+    }
+
+    public static final int LIBUSB_REQUEST_GET_DESCRIPTOR = 0x06;
+    public static final int LIBUSB_DT_STRING = 0x03;
+    public static int libusb_get_string_descriptor(LibUsbDeviceHandle dev_handle, byte desc_index, short langid, MemorySegment data) {
+        return libusb_control_transfer(dev_handle, (byte) LIBUSB_ENDPOINT_IN, (byte) LIBUSB_REQUEST_GET_DESCRIPTOR, (short)((LIBUSB_DT_STRING << 8) | desc_index), langid, data, (short) data.byteSize(), 1000);
+    }
+
+    private static final MethodHandle libusb_get_port_numbers;
+    public static int libusb_get_port_numbers(LibUsbDevice dev, MemorySegment port_numbers) {
+        try {
+            return (int) libusb_get_port_numbers.invokeExact(dev.address(), port_numbers, (int) port_numbers.byteSize());
+        } catch (Throwable e) {
+            throw new RuntimeException("Failed to invoke libusb_get_port_numbers", e);
+        }
+    }
+
     private static MemorySegment context(LibUsbContext ctx) {
         return ctx == null ? MemorySegment.NULL : ctx.address();
     }
@@ -330,7 +393,7 @@ public final class LibUsb {
         libusb_get_device_list = binder.bind("libusb_get_device_list", JAVA_LONG, ADDRESS, ADDRESS);
         libusb_free_device_list = binder.bind("libusb_free_device_list", null, ADDRESS, JAVA_INT);
         libusb_get_device_descriptor = binder.bind("libusb_get_device_descriptor", JAVA_INT, ADDRESS, ADDRESS);
-        libusb_error_name = binder.bind("libusb_error_name", ADDRESS.asUnbounded(), JAVA_INT);
+        libusb_error_name = binder.bind("libusb_error_name", UNBOUND_ADDRESS, JAVA_INT);
         libusb_has_capability = binder.bind("libusb_has_capability", JAVA_INT, JAVA_INT);
         libusb_ref_device = binder.bind("libusb_ref_device", ADDRESS, ADDRESS);
         libusb_unref_device = binder.bind("libusb_unref_device", null, ADDRESS);
@@ -338,7 +401,8 @@ public final class LibUsb {
         libusb_close = binder.bind("libusb_close", null, ADDRESS);
         libusb_set_auto_detach_kernel_driver = binder.bind("libusb_set_auto_detach_kernel_driver", JAVA_INT, ADDRESS, JAVA_INT);
         libusb_set_configuration = binder.bind("libusb_set_configuration", JAVA_INT, ADDRESS, JAVA_INT);
-        libusb_control_transfer = binder.bind("libusb_control_transfer", JAVA_INT, ADDRESS, JAVA_BYTE, JAVA_BYTE, JAVA_SHORT, JAVA_SHORT, ADDRESS, JAVA_INT, ADDRESS, JAVA_INT);
+        libusb_get_configuration = binder.bind("libusb_get_configuration", JAVA_INT, ADDRESS, ADDRESS);
+        libusb_control_transfer = binder.bind("libusb_control_transfer",JAVA_INT, ADDRESS, JAVA_BYTE, JAVA_BYTE, JAVA_SHORT, JAVA_SHORT, ADDRESS, JAVA_SHORT, JAVA_INT);
         libusb_bulk_transfer = binder.bind("libusb_bulk_transfer", JAVA_INT, ADDRESS, JAVA_BYTE, ADDRESS, JAVA_INT, ADDRESS, JAVA_INT);
         libusb_interrupt_transfer = binder.bind("libusb_interrupt_transfer", JAVA_INT, ADDRESS, JAVA_BYTE, ADDRESS, JAVA_INT, ADDRESS, JAVA_INT);
         libusb_claim_interface = binder.bind("libusb_claim_interface", JAVA_INT, ADDRESS, JAVA_INT);
@@ -348,6 +412,11 @@ public final class LibUsb {
         libusb_alloc_transfer = binder.bind("libusb_alloc_transfer", ADDRESS, JAVA_INT);
         libusb_free_transfer = binder.bind("libusb_free_transfer", null, ADDRESS);
         libusb_submit_transfer = binder.bind("libusb_submit_transfer", JAVA_INT, ADDRESS);
+        libusb_get_active_config_descriptor = binder.bind("libusb_get_active_config_descriptor", JAVA_INT, ADDRESS, ADDRESS);
+        libusb_get_config_descriptor = binder.bind("libusb_get_config_descriptor", JAVA_INT, ADDRESS, JAVA_BYTE, ADDRESS);
+        libusb_get_config_descriptor_by_value = binder.bind("libusb_get_config_descriptor_by_value", JAVA_INT, ADDRESS, JAVA_BYTE, ADDRESS);
+        libusb_free_config_descriptor = binder.bind("libusb_free_config_descriptor", null, ADDRESS);
+        libusb_get_port_numbers = binder.bind("libusb_get_port_numbers", JAVA_INT, ADDRESS, ADDRESS, JAVA_INT);
     }
     
     private LibUsb() {

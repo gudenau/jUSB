@@ -16,6 +16,14 @@ public sealed interface UsbDeviceHandle extends AutoCloseable permits UsbDeviceH
      * @throws UsbException if the configuration could not be set
      */
     void setConfiguration(int configuration) throws UsbException;
+
+    /**
+     * Gets the current configuration of the device.
+     *
+     * @return The current configuration
+     * @throws UsbException if the configuration could not be read
+     */
+    int getConfiguration() throws UsbException;
     
     /**
      * Claims an interface on the device for this application to use.
@@ -126,6 +134,8 @@ public sealed interface UsbDeviceHandle extends AutoCloseable permits UsbDeviceH
      * @throws UsbException If async transfers are not enabled or the transfer could not be created
      */
     UsbAsyncTransfer createTransfer() throws UsbException;
-    
+
+    String stringDescriptor(byte index) throws UsbException;
+
     @Override void close() throws UsbException;
 }

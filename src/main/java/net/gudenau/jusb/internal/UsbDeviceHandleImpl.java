@@ -12,6 +12,7 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.concurrent.TimeoutException;
 
 import static net.gudenau.jusb.internal.Utils.endpoint;
@@ -36,7 +37,19 @@ public final class UsbDeviceHandleImpl implements UsbDeviceHandle {
             throw new UsbException("Failed to set device configuration: " + LibUsb.libusb_error_name(result));
         }
     }
-    
+
+    @Override
+    public int getConfiguration() throws UsbException {
+        try(var arena = Arena.openConfined()) {
+            var pointer = arena.allocate(ValueLayout.JAVA_INT);
+            var result = LibUsb.libusb_get_configuration(handle, pointer);
+            if(result != LibUsb.LIBUSB_SUCCESS) {
+                throw new UsbException("Failed to get device configuration: " + LibUsb.libusb_error_name(result));
+            }
+            return pointer.get(ValueLayout.JAVA_INT, 0);
+        }
+    }
+
     @Override
     public void claimInterface(int iface) throws UsbException {
         var result = LibUsb.libusb_claim_interface(handle, iface);
@@ -117,7 +130,35 @@ public final class UsbDeviceHandleImpl implements UsbDeviceHandle {
         }
         return new UsbAsyncTransferImpl(this, new LibUsbTransfer(address));
     }
-    
+
+    @Override
+    public String stringDescriptor(byte index) throws UsbException {
+        try(var arena = Arena.openConfined()) {
+            var buffer = arena.allocate(255, 8);
+            var result = LibUsb.libusb_get_string_descriptor(handle, (byte) 0, (short) 0, buffer);
+            if(result < 0) {
+                throw new UsbException("Failed to get supported languages from USB device: " + LibUsb.libusb_error_name(result));
+            }
+            if(result < 4) {
+                throw new UsbException("Failed to get supported languages from USB device: Not enough data was transferred");
+            }
+
+            var languageId = buffer.get(ValueLayout.JAVA_SHORT, 2);
+            result = LibUsb.libusb_get_string_descriptor(handle, index, languageId, buffer);
+            if(result < 0) {
+                throw new UsbException("Failed to get supported languages from USB device: " + LibUsb.libusb_error_name(result));
+            }
+            if(result < 2) {
+                throw new UsbException("Failed to get supported languages from USB device: Not enough data was transferred");
+            }
+
+            int size = (result - 2) / 2;
+            char[] string = new char[size];
+            buffer.asByteBuffer().order(ByteOrder.nativeOrder()).asCharBuffer().get(1, string);
+            return new String(string);
+        }
+    }
+
     @Override
     public void close() {
         LibUsb.libusb_close(handle);

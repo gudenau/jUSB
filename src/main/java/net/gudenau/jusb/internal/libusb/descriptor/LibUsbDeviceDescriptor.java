@@ -1,4 +1,4 @@
-package net.gudenau.jusb.internal.libusb;
+package net.gudenau.jusb.internal.libusb.descriptor;
 
 import net.gudenau.jusb.descriptor.UsbDeviceDescriptor;
 

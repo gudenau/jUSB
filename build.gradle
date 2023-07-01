@@ -8,7 +8,7 @@ plugins {
 }
 
 group = 'net.gudenau'
-version = "0.0.2-java-${project.javaVersion}"
+version = "${project.version}-java-${project.javaVersion}"
 
 base {
     archivesName = 'jUSB'
